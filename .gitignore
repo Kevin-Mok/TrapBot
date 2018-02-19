@@ -109,7 +109,7 @@ ENV/
 *.sw*
 *.out
 *.yml
-# test-*
+search_*
 commit-msg.txt
 commented.txt
 output.py
