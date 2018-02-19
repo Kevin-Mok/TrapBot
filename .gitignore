@@ -112,3 +112,4 @@ ENV/
 # test-*
 commit-msg.txt
 commented.txt
+output.py

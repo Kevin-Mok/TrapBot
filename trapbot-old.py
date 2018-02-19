@@ -12,7 +12,6 @@ import requests
 import bs4
 import soundcloud
 import pprint
-import cPickle as pickle
 
 from googleapiclient.discovery import build
 #  }}} imports #
@@ -32,9 +31,6 @@ footer = '\n Bot created by u/ConfusedFence | [Source code](https://github.com/K
 comment_query_limit = 5
 search_query_limit = 10
 #  track_query_limit = 10
-
-with open('search_results.p', 'rb') as fp:
-    search_results = pickle.load(fp)
 
 # test comment
 # comment = ' I’m sure you’ve heard it but\n\nKendrick Lamar - Humble (Skrillex Remix)\n\nAnd these are bangers\n\nMontell2099 - Hunnid on the Drop (Mr. Carmack Remix)\n\nASAP Rocky - Lord Pretty Flacko Joyde 2 (Y2K Remix)\n\nEkali - Babylon (feat. Denzel Curry) (Woodpile flip)\n\nBrockhampton - Stains (Whethan Bootleg)\n\nKrane and B. Lewis - PCP (feat. Nick Row)\n\nSorry bout no links I’m on mobile\n'
@@ -78,40 +74,44 @@ def compare_search_with_title(search_words, title_words):
 
 #  get_song_urls() {{{ # 
 def get_song_urls(api_key, query):
-    #  live/store search code {{{ # 
-    # live search
     #  service = build("customsearch", "v1", developerKey=api_key)
     #  search_results = service.cse().list(q=query, cx=cse_id, num=search_query_limit).execute()
+    #  pprint.pprint(search_results)
 
-    # store results using cPickle
-    #  with open('search_results.p', 'wb') as fp:
-        #  pickle.dump(search_results, fp, protocol=pickle.HIGHEST_PROTOCOL)
-    #  }}} live/store search code # 
+    # test code without Google call
+    urls_and_titles = []
+    file = open('urls-titles.txt')
+    for line in file:
+        split_line = line.strip('\n').split(',')
+        urls_and_titles.append(split_line)
+    file.close()
 
-    #  test code without Google call {{{ # 
-    #  urls_and_titles = []
-    #  file = open('urls-titles.txt')
-    #  for line in file:
-        #  split_line = line.strip('\n').split(',')
-        #  urls_and_titles.append(split_line)
-    #  file.close()
-    #  }}} test code without Google call # 
-
-    #  pprint.pprint(search_results['items'][0]['pagemap']['metatags'][0]['twitter:title'])
-    #  pprint.pprint(search_results.keys())
+    #  pprint.pprint(urls_and_titles)
     song_urls = []
-    for result in search_results['items']:
-        url = result['link']
-        if 'search' not in url:
-            page_title = result['title'].encode("utf-8")
-            song_name = result['pagemap']['metatags'][0]['twitter:title']
-            #  print(song_name)
-            song_urls.append(url)
+    for pair in urls_and_titles:
+    #  for result in search_results['items']:
+        #  page_title = result['title'].encode("utf-8")
+        #  bar_index = page_title.find('|')
+        #  song_name = page_title[:bar_index - 1]
+        #  url = result['link']
+        bar_index = pair[1].rfind('|')
+        pair[1] = pair[1][:bar_index - 1]
+        print(pair[1])
+
+        #  print(url)
+        #  pprint.pprint(pair)
+        if 'search' not in pair[0]:
+            song_urls.append(pair[0])
+            #  print(pair, song_name)
 
             # TO-DO: store song names to test search query against
             search_words = split_string_into_words(query)
-            title_words = split_string_into_words(song_name)
+            title_words = split_string_into_words(pair[1])
+            print(pair)
             compare_search_with_title(search_words, title_words)
+
+            #  print("URL: {0}".format(item['formattedUrl']))
+            #  print("Song Name Words: {0}\n".format(song_name_words))
 
     return song_urls
 #  }}} get_song_urls() # 
