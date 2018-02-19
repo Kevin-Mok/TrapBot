@@ -1,6 +1,6 @@
 #  .gitignore template {{{ # 
 # PRAW config file
-praw.ini
+*.ini
 
 # comment-id data
 commented.txt

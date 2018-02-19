@@ -11,20 +11,25 @@ import re
 import requests
 import bs4
 import soundcloud
+import pprint
+
+from googleapiclient.discovery import build
 #  }}} imports #
 
 #  global vars {{{ # 
 #  client = soundcloud.Client(client_id="BLIKpIMvNL9As25CHX4l9xXLu7KuU5uF")
 # Location of file where id's of already visited comments are maintained
-path = '~/Documents/coding/trapbot/commented.txt'
+comments_path = '~/Documents/coding/trapbot/commented.txt'
+api_file = 'google-api.ini'
+cse_id = '016449672529328854635:e0dwkvd2jqa'
 subreddits = 'test'
 
 # Text to be posted along with comic description
 header = '**SoundCloud Links:**\n'
-footer = '\n Bot created by u/ConfusedFence | [Source
-code](https://github.com/Kevin-Mok/TrapBot)*'
+footer = '\n Bot created by u/ConfusedFence | [Source code](https://github.com/Kevin-Mok/TrapBot)*'
 
 comment_query_limit = 5
+search_query_limit = 10
 #  track_query_limit = 10
 
 # test comment
@@ -39,6 +44,35 @@ def authenticate():
     print('Authenticated as {}\n'.format(reddit.user.me()))
     return reddit
 #  }}} authenticate() #
+
+#  get_google_api_key() {{{ # 
+def get_google_api_key():
+    file = open(api_file)
+    api_key = file.read().strip('\n')
+    file.close()
+    return api_key
+#  }}} get_google_api_key() # 
+
+#  get_song_urls() {{{ # 
+def get_song_urls(api_key, query):
+    stripped_punctuation = '[]()'
+    service = build("customsearch", "v1", developerKey=api_key)
+    search_results = service.cse().list(q=query, cx=cse_id, num=search_query_limit).execute()
+    song_urls = []
+    for result in search_results['items']:
+        page_title = result['title'].encode("utf-8")
+        bar_index = page_title.find('|')
+        song_name = page_title[:bar_index - 1]
+        if "Search results" not in song_name:
+            song_urls.append(result['formattedUrl'])
+            # todo: write helper function to compare song name words to search
+            # query
+            #  song_name_words = [word.strip(stripped_punctuation) for word in song_name.lower().split(' ') if len(word) > 1]
+            #  print("URL: {0}".format(item['formattedUrl']))
+            #  print("Song Name Words: {0}\n".format(song_name_words))
+
+    return song_urls
+#  }}} get_song_urls() # 
 
 #  run_trapbot() {{{ # 
 def run_trapbot(reddit):
@@ -115,7 +149,27 @@ def main():
     #  reddit = authenticate()
     #  while True:
         #  run_trapbot(reddit)
-    run_trapbot(0)
+    query = 'Kendrick Lamar Humble (Skrillex Remix)'
+    api_key = get_google_api_key()
+    pprint.pprint(get_song_urls(api_key, query))
+
+    # code transferred to get_song_urls, can delete after commit
+    # ================
+    #  search_results = get_search_results(api_key, query)
+    #  #  pprint.pprint(search_results['items'])
+    #  for item in search_results['items']:
+        #  page_title = item['title'].encode("utf-8")
+        #  bar_index = page_title.find('|')
+        #  #  print("Page Title: {0}".format(page_title))
+        #  song_name = page_title[:bar_index - 1]
+        #  if "Search results" not in song_name:
+            #  #  song_name_words = [word for word in song_name.strip('[]()').split(' ') if len(word) > 1]
+            #  song_name_words = [word.strip('[]()') for word in song_name.lower().split(' ') if len(word) > 1]
+            #  print("URL: {0}".format(item['formattedUrl']))
+            #  print("Song Name Words: {0}\n".format(song_name_words))
+    # ================
+
+    #  run_trapbot(0)
 
 if __name__ == '__main__':
     main()
