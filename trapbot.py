@@ -28,7 +28,7 @@ subreddits = 'test'
 
 # Text to be posted along with comic description
 header = '**SoundCloud Links:**\n\n'
-footer = '___\n^^[Source&nbsp;code](https://github.com/Kevin-Mok/TrapBot)&nbsp;|&nbsp;Bot&nbsp;created&nbsp;by&nbsp;u/ConfusedFence'
+footer = '___\n^^[Source&nbsp;Code](https://github.com/Kevin-Mok/TrapBot)&nbsp;|&nbsp;Bot&nbsp;created&nbsp;by&nbsp;u/ConfusedFence'
 
 comment_query_limit = 5
 search_query_limit = 10
@@ -225,7 +225,7 @@ def main():
     #  }}} scan reddit # 
 
     #  test comment {{{ # 
-    comment = ' \nCrankdat - Dollars (Crankdat x Ray Volpe x Gammer Remix)\n\nAxwell ^ Ingrosso - On My Way (Valentino Khan Remix)\n\n'
+    comment = ' Definitely check\n\nSOPHIE - faceshopping\n\nGTA death to genres 3 comp\n\nJust a Gent - 404\n\nSumthin sumthin - spiral\n\nMinnesota - HiLow (charlesthefirst remix)\n\nZeke Beats Devestate EP\n\nJadu Dala (label) had some solid recent releases as well\n'
 
     song_names_matches = filter_song_names(comment)
     #  pprint.pprint(song_names_matches)

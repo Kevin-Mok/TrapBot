@@ -110,6 +110,7 @@ ENV/
 *.out
 *.yml
 *.txt
+*.html
 search_*
 commit-msg.txt
 commented.txt
