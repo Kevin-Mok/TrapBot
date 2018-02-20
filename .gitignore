@@ -109,7 +109,9 @@ ENV/
 *.sw*
 *.out
 *.yml
+*.txt
 search_*
 commit-msg.txt
 commented.txt
 output.py
+trapbot-cp.py
