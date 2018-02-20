@@ -33,24 +33,20 @@ footer = '___\n^^[Source&nbsp;code](https://github.com/Kevin-Mok/TrapBot)&nbsp;|
 comment_query_limit = 5
 search_query_limit = 10
 
-# test comment
-comment = 'Apster- Get It In\n\nFlux Pavillion- Stain (pretty explicit though) \n\nSWACQ- Guerilla\n\nDillon Francis- Say Less (also explicit) \n\nTimmy Trumpet- Freaks\n\nBass Nectar & Dirty Phonics- WatchOut\n\nDimitri Vegas & Like Mike & Steve Aoki- Melody\n\nBreathe Carolina- Break of Dawn\n\nAero Chord- Resistance\n\nSteve Aoki- Rage The Night Away\n\nAfrojack- Keep It Low\n\nTiestö and SEVENN- Boom\n\nSuyano & Rivero- Shockwave\n\nEdit: Here\'s my [lifting](https://open.spotify.com/user/2257lll4ruyjz2tdttlmoho4i/playlist/3tGEEXffUzHfrERIKFNuSq?si=mylqlor_QbCR-W5BrFMbnQ) playlist that I got a lot of these from if you want it. \n'
-
 # Open stored search results. (LOCAL)
-with open('search_results-all.p', 'rb') as fp:
-    all_search_results = pickle.load(fp)
-#  all_search_results = []
-
-# Regex used to determine if line is a song name. Matches are assumed to be
-# the artist and song name, order being irrelevant.
-song_name_regex = '((.+)\s?-\s?(.+))'
-max_artist_length = 50
+#  with open('search_results-all.p', 'rb') as fp:
+    #  all_search_results = pickle.load(fp)
+all_search_results = []
+search_results_file_name = 'search-results.txt'
 
 # Link to search of song when it can't be found.
 quality_threshold = 0.5
+# Higher search results are usually better so later ones should be substantially
+# more matched.
 better_by_than = 0.25
 soundcloud_search_url = 'https://soundcloud.com/search?q='
 not_found_text = ' could not be found.'
+# For %-encoding search URL.
 url_safe_chars = ':/=?'
 #  }}} global vars #
 
@@ -79,6 +75,7 @@ def split_string_into_words(str_in):
 #  }}} split_string_into_words() # 
 
 #  compare_search_with_title(search_words, title_words): {{{ # 
+# Return percentage of words found vs all words in title.
 def compare_search_with_title(search_words, title_words):
     search_words_found = []
     for search_word in search_words:
@@ -92,12 +89,16 @@ def compare_search_with_title(search_words, title_words):
 
 #  get_best_song_url(cse_service, query): {{{ #
 # todo: remove last arg when actually using (LOCAL)
-def get_best_song_url(cse_service, query, search_results_index):
-    # LIVE
-    #  search_results = cse_service.cse().list(q=query, cx=cse_id, num=search_query_limit).execute()
-    # LOCAL
-    #  all_search_results.append(search_results)
-    search_results = all_search_results[search_results_index]
+#  def get_best_song_url(cse_service, query, search_results_index):
+def get_best_song_url(cse_service, query):
+    # LIVE/LOCAL
+    search_results = cse_service.cse().list(q=query, cx=cse_id, num=search_query_limit).execute()
+    print(search_results)
+    search_results_file = open(search_results_file_name, 'a+')
+    search_results_file.write(str(search_results) + '\n')
+    search_results_file.close()
+    all_search_results.append(search_results)
+    #  search_results = all_search_results[search_results_index]
 
     most_similar_percent = 0
     best_url = ''
@@ -134,21 +135,41 @@ def get_song_url_pairs(song_names_matches):
     cse_service = return_cse_service()
 
     # todo: remove when actually using (LOCAL)
-    results_index = 0
+    #  results_index = 0
     for match in song_names_matches:
         # combine song name and artist to form search query
         search_query = "{0} {1}".format(match[1], match[2])
-        best_song_url = get_best_song_url(cse_service, search_query,
-                results_index)
+        best_song_url = get_best_song_url(cse_service, search_query)
         #  best_song_url = get_best_song_url(cse_service, search_query, results_index)
         if best_song_url is not None:
             song_url_pairs.append([match[0], best_song_url])
         else:
             song_url_pairs.append(get_not_found_pair(match[0]))
-        results_index += 1
+        #  results_index += 1
 
     return song_url_pairs
 #  }}} get_song_url_pairs() #
+
+#  def filter_song_names(comment): {{{ # 
+# Get song names matches from comment.
+def filter_song_names(comment):
+    # Regex used to determine if line is a song name. Matches are assumed to be
+    # the artist and song name, order being irrelevant.
+    song_name_regex = '((.+)\s?-\s?(.+))'
+    max_word_length = 30
+    max_song_length = 100
+
+    song_names_matches = re.findall(song_name_regex, comment)
+    filtered_song_names_matches = []
+    for match in song_names_matches:
+        proper_word_lengths = True
+        for word in split_string_into_words(match[0]):
+            if len(word) > max_word_length:
+                proper_word_lengths = False
+        if proper_word_lengths and len(match[0]) < max_song_length:
+            filtered_song_names_matches.append(match)
+    return filtered_song_names_matches
+#  }}}  def filter_song_names(comment): # 
 
 #  def scan_comments(): {{{ # 
 def scan_comments():
@@ -157,8 +178,9 @@ def scan_comments():
 
     # retrieve comments from reddit_service
     for comment in reddit_service.subreddit(subreddits).comments(limit=comment_query_limit):
-        song_names_matches = re.findall(song_name_regex, comment.body)
-        song_names_matches = [match for match in song_names_matches if len(match[0]) <= max_artist_length and len(match[1]) <= max_artist_length]
+        #  song_names_matches = re.findall(song_name_regex, comment.body)
+        #  song_names_matches = [match for match in song_names_matches if len(match[0]) <= max_artist_length and len(match[1]) <= max_artist_length]
+        song_names_matches = filter_song_names(comment.body)
         read_comments_file = open(comments_path, 'r')
 
         if len(song_names_matches) > 0 and comment.id not in read_comments_file.read().splitlines():
@@ -179,7 +201,7 @@ def scan_comments():
     #  time.sleep(60)
 #  }}} def scan_comments(): # 
 
-#  def return_comment(song_url_pairs): {{{ # 
+#  def return_comment(song_url_pairs): {{{ #
 # Expects list of lists containing song then URL in that specific order.
 def return_comment(song_url_pairs):
     comment = header
@@ -195,23 +217,37 @@ def return_comment(song_url_pairs):
 
 #  main() {{{ # 
 def main():
+    #  scan reddit {{{ # 
     #  while True:
         #  scan_comments()
     #  print(re.findall(song_name_regex, comment))
     #  scan_comments()
+    #  }}} scan reddit # 
 
-    # for test comment
-    song_names_matches = re.findall(song_name_regex, comment)
-    song_names_matches = [match for match in song_names_matches if len(match[0]) <= 50 and len(match[1]) <= 50]
+    #  test comment {{{ # 
+    comment = ' \nCrankdat - Dollars (Crankdat x Ray Volpe x Gammer Remix)\n\nAxwell ^ Ingrosso - On My Way (Valentino Khan Remix)\n\n'
+
+    song_names_matches = filter_song_names(comment)
+    #  pprint.pprint(song_names_matches)
+    #  pprint.pprint(len(song_names_matches))
     print(return_comment(get_song_url_pairs(song_names_matches)))
 
+    #  song_names_matches = re.findall(song_name_regex, comment)
+    #  song_names_matches = [match for match in song_names_matches if len(match[0]) <= max_artist_length and len(match[1]) <= max_artist_length]
+    #  }}} for test comment # 
+
     # store results using cPickle (LOCAL)
+    with open('search_results-all.p', 'wb') as fp:
+        pickle.dump(all_search_results, fp, protocol=pickle.HIGHEST_PROTOCOL)
+
+    #  read dict from file {{{ # 
     #  f = open('search-results.txt')
     #  results = []
     #  for line in f:
         #  results.append(ast.literal_eval(line))
     #  with open('search_results-all.p', 'wb') as fp:
         #  pickle.dump(results, fp, protocol=pickle.HIGHEST_PROTOCOL)
+    #  }}} read dict from file # 
 
 if __name__ == '__main__':
     main()
