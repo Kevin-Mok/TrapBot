@@ -15,7 +15,7 @@ Example:
 * Core - RL Grime
 * U Already Know - Keys N Krates
 ```
-**Note: ** The bot is still being tested, and all responses are currently being
+**Note:** The bot is still being tested, and all responses are currently being
 manually approved before submission.
 
 ## Motivation
