@@ -7,6 +7,7 @@ from urllib import quote
 
 import praw
 import soundcloud
+import unicodedata
 
 #  }}} imports #
 
@@ -14,15 +15,14 @@ import soundcloud
 #  file names {{{ # 
 soundcloud_api_file_name = 'soundcloud-api.ini'
 found_comments_file_name = 'found_comments.txt'
+posts_file_name = 'posts.txt'
+subreddits_file_name = 'subreddits.txt'
+
 read_comments_file = open(found_comments_file_name, 'r')
 read_comment_ids = [comment_id for comment_id in read_comments_file.read().splitlines()]
 read_comments_file.close()
-#  found_matches_file = 'found_matches.txt'
-posts_file_name = 'posts.txt'
+#  read_comment_ids = make_lst_from_file(found_comments_file_name)
 #  }}} file names # 
-
-# Add more subreddits with '+'.
-subreddits = 'EDM+trap+hevin'
 
 #  output text {{{ # 
 # Text around comment body
@@ -31,7 +31,7 @@ footer = '___\n^^[Source&nbsp;code](https://github.com/Kevin-Mok/TrapBot)&nbsp;|
 #  }}} output text # 
 
 #  timing/limit vars {{{ # 
-comment_query_limit = 10
+comment_query_limit = 20
 search_query_limit = 10
 #  check_freq = 60
 check_freq = 120
@@ -58,6 +58,14 @@ not_found_text = ' could not be found.'
 #  }}} vars used to find best song #
 #  }}} global vars #
 
+#  def make_lst_from_file(file_name): {{{ # 
+def make_lst_from_file(file_name):
+    arb_file = open(file_name, 'r')
+    lst = [line for line in arb_file.read().splitlines()]
+    arb_file.close()
+    return lst
+#  }}} def make_lst_from_file(file_name): # 
+
 #  return_reddit_service() {{{ #
 def return_reddit_service():
     #  print('Authenticated as {}\n'.format(reddit_service.user.me()))
@@ -70,6 +78,7 @@ def return_reddit_service():
 def return_soundcloud_service():
     soundcloud_api_file = open(soundcloud_api_file_name)
     soundcloud_client_id = soundcloud_api_file.readline().strip('\n')
+    soundcloud_api_file.close()
     return soundcloud.Client(client_id=soundcloud_client_id)
 
 
@@ -78,7 +87,7 @@ def return_soundcloud_service():
 #  split_string_into_words() {{{ # 
 # Split given string by spaces and punctuation.
 def split_string_into_words(str_in):
-    stripped_punctuation = '[]()\'\''
+    stripped_punctuation = '[]()\''
     return [word.strip(stripped_punctuation) for word in str_in.lower().split(' ') if len(word) > 1]
 
 
@@ -87,6 +96,8 @@ def split_string_into_words(str_in):
 #  compare_search_with_title(search_words, title_words): {{{ # 
 # Return percentage of words found vs all words in title.
 def compare_search_with_title(search_words, title_words):
+    if len(search_words) < 1:
+        return 0
     search_words_found = []
     for search_word in search_words:
         if search_word in title_words:
@@ -106,13 +117,13 @@ def check_if_real_artist(artist_words, search_words):
 #  }}}  def check_if_real_artist(artist_words, search_words): #
 
 #  def check_if_remix_same(title_words, search_words): {{{ # 
-def check_if_remix_synonym_in_list(lst):
+def check_if_remix_synonym_in_lst(lst):
     return True if len(set(lst) & set(remix_synonyms)) else False
 
 
 def check_if_remix_same(title_words, search_words):
-    remix_same = check_if_remix_synonym_in_list(title_words) == \
-                 check_if_remix_synonym_in_list(search_words)
+    remix_same = check_if_remix_synonym_in_lst(title_words) == \
+                 check_if_remix_synonym_in_lst(search_words)
     return remix_same_weight if remix_same else 0
 
 
@@ -204,13 +215,13 @@ def add_comment_id_to_read(comment_id):
 #  }}}  def add_comment_id_to_read(id): #
 
 #  def print_matched_comment(comment): {{{ # 
-def print_matched_comment(comment, url, song_names_matches):
+def print_matched_comment(comment_body, url, song_names_matches):
     global num_finds
     #  print(found_comment_output[0])
     print('-' * 80)
     print('Find #{}\n'.format(num_finds))
     print('URL: {}'.format(url))
-    print('Comment Body:\n{}'.format(comment.body))
+    print('Comment Body:\n{}'.format(comment_body))
     print('Matches: {}'.format(song_names_matches))
     print('-' * 80)
     #  print(found_comment_output[1])
@@ -238,12 +249,13 @@ def write_post_to_file(url, post):
 #  def write_post_if_appropriate(comment): {{{ # 
 def write_post_if_appropriate(comment):
     global num_finds
-    song_names_matches = filter_song_names(comment.body)
+    ascii_comment_body = unicodedata.normalize('NFKD', comment.body).encode('ascii','ignore')
+    song_names_matches = filter_song_names(ascii_comment_body)
     if len(song_names_matches) > 0:
         num_finds += 1
         url = prepend_url_str + comment.permalink
         formatted_matches = pprint.pformat(song_names_matches)
-        print_matched_comment(comment, url, formatted_matches)
+        print_matched_comment(ascii_comment_body, url, formatted_matches)
         # print post
         post = return_comment(get_song_url_pairs(song_names_matches))
         write_post_to_file(url, post)
@@ -253,8 +265,8 @@ def write_post_if_appropriate(comment):
 #  }}}  def write_post_if_appropriate(comment): #
 
 #  def scan_comments(reddit_service): {{{ # 
-def scan_comments(reddit_service):
-    fetched_comments = reddit_service.subreddit(subreddits).comments(limit=comment_query_limit)
+def scan_comments(reddit_service, subreddits_str):
+    fetched_comments = reddit_service.subreddit(subreddits_str).comments(limit=comment_query_limit)
     new_comments = [comment for comment in fetched_comments if comment.id not in read_comment_ids]
 
     #  retrieve comments from reddit_service
@@ -266,7 +278,7 @@ def scan_comments(reddit_service):
 #  }}} def scan_comments(reddit_service): #
 
 #  def return_comment(song_url_pairs): {{{ #
-# Expects list of lists containing song then URL in that specific order.
+# Expects lst of lsts containing song then URL in that specific order.
 def return_comment(song_url_pairs):
     comment = header
     for item in song_url_pairs:
@@ -283,6 +295,8 @@ def return_comment(song_url_pairs):
 #  def loop_scanning(): {{{ # 
 def loop_scanning():
     reddit_service = return_reddit_service()
+    subreddits_str = '+'.join(make_lst_from_file(subreddits_file_name))
+    #  print(subreddits_str)
     num_scans = 0
     while True:
         total_uptime = float(num_scans * check_freq) / 60
@@ -290,7 +304,7 @@ def loop_scanning():
                                                                       check_freq, total_uptime)
         print(wait_msg)
 
-        scan_comments(reddit_service)
+        scan_comments(reddit_service, subreddits_str)
         num_scans += 1
         time.sleep(check_freq)
 
@@ -301,4 +315,10 @@ if __name__ == '__main__':
     loop_scanning()
 
     # work with single comment
-    #  write_post_if_appropriate(reddit_service.comment(id='dum44tn'))
+    #  write_post_if_appropriate(return_reddit_service().comment(id='dum88e8'))
+
+    #  testing {{{ # 
+    # print URL of comment
+    #  print(return_reddit_service().comment(id='dun825k').permalink)
+    #  pprint.pprint(dir(return_reddit_service().comment(id='dun825k')))
+    #  }}} testing # 
