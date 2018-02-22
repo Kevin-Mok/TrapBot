@@ -65,12 +65,13 @@ def filter_song_names(comment):
     # section should be between 3 and 50 chars
     section_regex = '(.{3,50})'
     song_name_regex = '(^{0}\s?-\s?{0}$)'.format(section_regex)
+    compiled_song_name_regex = re.compile(song_name_regex, re.MULTILINE)
     #  min_section_length = 3
     #  max_song_length = 100
     max_word_length = 30
     proper_song_name = True
 
-    song_names_matches = re.findall(song_name_regex, comment)
+    song_names_matches = compiled_song_name_regex.findall(comment)
     filtered_song_names_matches = []
     for match in song_names_matches:
         # max word length
@@ -105,7 +106,7 @@ def scan_comments(reddit_service):
     fetched_comments = reddit_service.subreddit(subreddits).comments(limit=comment_query_limit)
     new_comments = [comment for comment in fetched_comments if comment.id not in read_comment_ids]
 
-    print("Found {} new comment(s).".format(len(new_comments)))
+    #  print("Found {} new comment(s).".format(len(new_comments)))
     #  comments_read = 0
     #  prev_found_streak = 0
     #  retrieve comments from reddit_service
@@ -116,9 +117,8 @@ def scan_comments(reddit_service):
                 #  prev_found_streak = reset_found_streak(prev_found_streak)
         url = prepend_url_str + comment.permalink
         #  print(comments_read, comment.id)
-        print(comment.id, url)
-        #  print(url)
-        print(comment.body + '\n')
+        #  print(comment.id, url)
+        #  print(comment.body + '\n')
         #  write_comments_file = open(found_comments_path, 'a+')
         read_comment_ids.append(comment.id)
         write_comments_file = open(found_comments_path, 'a+')
@@ -127,11 +127,12 @@ def scan_comments(reddit_service):
 
         song_names_matches = filter_song_names(comment.body)
         if len(song_names_matches) > 0:
-            print('This comment contains song names. Finding...')
+            print('\n*** THIS COMMENT CONTAINS SONG NAMES. FINDING... ***')
             #  print('Comment is new and contains song names. Finding...')
             formatted_matches = pprint.pformat(song_names_matches)
             #  pprint.pprint(song_names_matches)
             print(formatted_matches)
+            print('*** END OF MATCHES ***\n')
             match_str = "{0}\n{1}\n\n".format(url, formatted_matches)
             #  write_matches_file = open(found_matches_file, 'a+')
             write_matches_file = open(found_matches_file, 'a+')
@@ -145,11 +146,13 @@ def scan_comments(reddit_service):
 
     #  if prev_found_streak > 0:
         #  prev_found_streak = reset_found_streak(prev_found_streak)
+    #  print('Waiting {} seconds before next scan...'.format(check_freq))
+    #  for i in range(check_freq, 0, time_btwn_wait_msgs * -1):
+        #  print("{}...".format(i))
+        #  time.sleep(time_btwn_wait_msgs)
+    #  print('')
     print('Waiting {} seconds before next scan...'.format(check_freq))
-    for i in range(check_freq, 0, time_btwn_wait_msgs * -1):
-        print("{}...".format(i))
-        time.sleep(time_btwn_wait_msgs)
-    print('')
+    time.sleep(check_freq)
 
 #  }}} def scan_comments(): #
 

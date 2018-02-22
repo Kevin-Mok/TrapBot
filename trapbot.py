@@ -22,6 +22,7 @@ from googleapiclient.discovery import build
 # Location of file where id's of already visited comments are maintained
 comments_path = '/home/kevin/Documents/coding/trapbot/commented.txt'
 api_file = 'google-api.ini'
+soundcloud_api_file_name = 'soundcloud-api.ini'
 comment_file = 'comment.txt'
 cse_id = '016449672529328854635:e0dwkvd2jqa'
 # Add more subreddits with '+'.
@@ -42,9 +43,13 @@ search_results_file_name = 'search-results.txt'
 
 # Link to search of song when it can't be found.
 quality_threshold = 0.5
+real_artist_threshold = 0.50
+real_artist_weight = 1
+remix_same_weight = 1
+remix_synonyms = ['remix', 'flip', 'edit']
 # Higher search results are usually better so later ones should be substantially
 # more matched.
-better_by_than = 0.25
+better_by_than = 0.5
 soundcloud_search_url = 'https://soundcloud.com/search?q='
 not_found_text = ' could not be found.'
 #  }}} global vars #
@@ -56,6 +61,17 @@ def return_reddit_service():
     print('Authenticated as {}\n'.format(reddit_service.user.me()))
     return reddit_service
 #  }}} return_reddit_service() #
+
+#  def return_soundcloud_service(): {{{ # 
+def return_soundcloud_service():
+    #  file = open(api_file)
+    #  api_key = file.readline().strip('\n')
+    #  file.close()
+    soundcloud_api_file = open(soundcloud_api_file_name)
+    soundcloud_client_id = soundcloud_api_file.readline().strip('\n')
+    #  print(soundcloud_client_id)
+    return soundcloud.Client(client_id=soundcloud_client_id)
+#  }}} def return_soundcloud_service(): # 
 
 #  def return_cse_service(): {{{ # 
 def return_cse_service():
@@ -85,6 +101,56 @@ def compare_search_with_title(search_words, title_words):
         #  search_words_found, title_words, percentage_found * 100))
 #  }}} compare_search_with_title() # 
 
+def check_if_real_artist(artist_words, search_words):
+    #  print(artist)
+    #  for word in search_words:
+        #  if word in artist:
+            #  return real_artist_weight
+    #  return 0
+    real_artist = compare_search_with_title(artist_words, search_words) > real_artist_threshold
+    return real_artist_weight if real_artist else 0
+
+#  def check_if_remix_same(title_words, search_words): {{{ # 
+def check_if_remix_synonym_in_list(lst):
+    return True if len(set(lst) & set(remix_synonyms)) else False
+
+def check_if_remix_same(title_words, search_words):
+    remix_same = check_if_remix_synonym_in_list(title_words) == \
+            check_if_remix_synonym_in_list(search_words)
+    return remix_same_weight if remix_same else 0
+    #  for synonym in remix_synonyms:
+        #  if (synonym in title_words) != (synonym in search_words):
+            #  return 0
+    #  return remix_same_weight
+#  }}}  def check_if_remix_same(title_words, search_words): # 
+
+#  def get_best_song_url_from_sc(soundcloud_service, query): {{{ # 
+def get_best_song_url_from_sc(soundcloud_service, query):
+    found_tracks = soundcloud_service.get('/tracks', q=query, limit=search_query_limit)
+
+    most_similar_percent = 0
+    best_url = ''
+    if len(found_tracks) < 1:
+        return None
+    for track in found_tracks:
+        search_words = split_string_into_words(query)
+        title_words = split_string_into_words(track.title)
+        #  artist = track.user['username']
+        artist_words = split_string_into_words(track.user['username'])
+
+        word_similarity_weight = compare_search_with_title(search_words, title_words)
+        artist_weight = check_if_real_artist(artist_words, search_words)
+        remix_weight = check_if_remix_same(title_words, search_words)
+
+        similar_percent = word_similarity_weight + artist_weight + remix_weight
+        print([word_similarity_weight, artist_weight, remix_weight], similar_percent, track.title, track.user['username'])
+        if similar_percent > (most_similar_percent + better_by_than):
+            most_similar_percent = similar_percent
+            best_url = track.permalink_url
+
+    return best_url if most_similar_percent > quality_threshold else None
+#  }}}  def get_best_song_url_from_sc(soundcloud_service, query): # 
+
 #  get_best_song_url(cse_service, query): {{{ #
 # todo: remove last arg when actually using (LOCAL)
 #  def get_best_song_url(cse_service, query, search_results_index):
@@ -92,7 +158,8 @@ def get_best_song_url(cse_service, query):
     #  print(query)
     # LIVE/LOCAL
     search_results = cse_service.cse().list(q=query, cx=cse_id, num=search_query_limit).execute()
-    print(search_results)
+    #  print(search_results)
+    print(query)
     search_results_file = open(search_results_file_name, 'w+')
     search_results_file.write(str(search_results) + '\n')
     search_results_file.close()
@@ -133,7 +200,8 @@ def get_best_song_url(cse_service, query):
 #  def get_song_url_pairs(song_names_matches): {{{ #
 def get_song_url_pairs(song_names_matches):
     song_url_pairs = []
-    cse_service = return_cse_service()
+    #  cse_service = return_cse_service()
+    soundcloud_service = return_soundcloud_service()
 
     # todo: remove when actually using (LOCAL)
     #  results_index = 0
@@ -141,7 +209,8 @@ def get_song_url_pairs(song_names_matches):
         # combine song name and artist to form search query
         search_query = "{0} {1}".format(match[1], match[2])
         # LOCAL
-        best_song_url = get_best_song_url(cse_service, search_query)
+        #  best_song_url = get_best_song_url(cse_service, search_query)
+        best_song_url = get_best_song_url_from_sc(soundcloud_service, search_query)
         #  best_song_url = get_best_song_url(cse_service, search_query, results_index)
         if best_song_url is not None:
             song_url_pairs.append([match[0], best_song_url])
@@ -182,6 +251,7 @@ def scan_comments(comment_url):
     song_names_matches = filter_song_names(comment.body)
     print("Song Names Matches: " + str(len(song_names_matches)))
     pprint.pprint(song_names_matches)
+    print(len(song_names_matches))
     # LIVE
     post = return_comment(get_song_url_pairs(song_names_matches))
     file = open(comment_file, 'w+')
@@ -242,37 +312,12 @@ def main():
         #  scan_comments()
     #  print(re.findall(song_name_regex, comment))
     #  print("Results stored: " + str(len(all_search_results)))
-    comment_url = 'dumgmsv'
+    comment_url = 'dum44tn'
     scan_comments(comment_url)
     # store results using cPickle
     #  with open('search_results-all.p', 'wb') as fp:
         #  pickle.dump(all_search_results, fp, protocol=pickle.HIGHEST_PROTOCOL)
     #  }}} scan reddit # 
-
-    #  test comment {{{ # 
-    #  comment = ' Definitely check\n\nSOPHIE - faceshopping\n\nGTA death to genres 3 comp\n\nJust a Gent - 404\n\nSumthin sumthin - spiral\n\nMinnesota - HiLow (charlesthefirst remix)\n\nZeke Beats Devestate EP\n\nJadu Dala (label) had some solid recent releases as well\n'
-
-    #  song_names_matches = filter_song_names(comment)
-    #  #  pprint.pprint(song_names_matches)
-    #  #  pprint.pprint(len(song_names_matches))
-    #  print(return_comment(get_song_url_pairs(song_names_matches)))
-
-    #  #  song_names_matches = re.findall(song_name_regex, comment)
-    #  #  song_names_matches = [match for match in song_names_matches if len(match[0]) <= max_artist_length and len(match[1]) <= max_artist_length]
-    #  }}} for test comment # 
-
-    #  read dict from file {{{ # 
-    #  f = open('search-results.txt')
-    #  results = []
-    #  for line in f:
-        #  line_dict = ast.literal_eval(line)
-        #  #  pprint.pprint(line_dict)
-        #  results.append(line_dict)
-    #  print(len(results))
-    #  #  pprint.pprint(results)
-    #  with open('search_results-all.p', 'wb') as fp:
-        #  pickle.dump(results, fp, protocol=pickle.HIGHEST_PROTOCOL)
-    #  }}} read dict from file # 
 
 if __name__ == '__main__':
     main()
