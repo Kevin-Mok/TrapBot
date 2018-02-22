@@ -113,7 +113,4 @@ ENV/
 *.html
 search_*
 commit-msg.txt
-commented.txt
-output.py
-results.py
-trapbot-cp.py
+find_comments.py
