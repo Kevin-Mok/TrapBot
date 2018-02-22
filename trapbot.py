@@ -19,7 +19,7 @@ posts_file_name = 'posts.txt'
 subreddits_file_name = 'subreddits.txt'
 
 read_comments_file = open(found_comments_file_name, 'r')
-read_comment_ids = [comment_id for comment_id in read_comments_file.read().splitlines()]
+read_comment_ids = {comment_id for comment_id in read_comments_file.read().splitlines()}
 read_comments_file.close()
 #  read_comment_ids = make_lst_from_file(found_comments_file_name)
 #  }}} file names # 
@@ -206,7 +206,7 @@ def filter_song_names(comment):
 
 #  def add_comment_id_to_read(id): {{{ # 
 def add_comment_id_to_read(comment_id):
-    read_comment_ids.append(comment_id)
+    read_comment_ids.add(comment_id)
     write_comments_file = open(found_comments_file_name, 'a+')
     write_comments_file.write(comment_id + '\n')
     write_comments_file.close()
