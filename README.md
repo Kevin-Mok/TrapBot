@@ -1,4 +1,4 @@
-# [TrapBot](https://www.reddit.com/user/trapscbot?sort=top)
+# [TrapBot](https://www.reddit.com/user/TrapSCBot)
 
 A reddit bot that looks for comments with song names and responds with their
 respective SoundCloud links.

@@ -28,9 +28,11 @@ read_comments_file.close()
 # Text around comment body
 header = '**SoundCloud Links:**\n\n'
 footer = '___\n^^[Source&nbsp;code](https://github.com/Kevin-Mok/TrapBot)&nbsp;|&nbsp;Bot&nbsp;created&nbsp;by&nbsp;u/ConfusedFence'
+footer = '___\n^^[Usage](https://github.com/Kevin-Mok/TrapBot#usage)&nbsp;|&nbsp;Bot&nbsp;created&nbsp;by&nbsp;u/ConfusedFence'
 #  }}} output text # 
 
 #  timing/limit vars {{{ # 
+#  comment_query_limit = 2000
 comment_query_limit = 20
 search_query_limit = 10
 #  check_freq = 60
@@ -43,7 +45,7 @@ quality_threshold = 0.5
 real_artist_threshold = 0.50
 real_artist_weight = 1
 remix_same_weight = 1
-remix_synonyms = ['remix', 'flip', 'edit']
+remix_synonyms = ['remix', 'flip', 'edit', 'cover', 'remixes', 'acoustic']
 # Higher search results are usually better so later ones should be substantially
 # more matched.
 better_by_than = 0.5
@@ -169,6 +171,7 @@ def get_song_url_pairs(song_names_matches):
         best_song_url = get_best_song_url_from_sc(soundcloud_service, search_query)
         if best_song_url is not None:
             song_url_pairs.append([match[0], best_song_url])
+        # comment out to not show not found
         else:
             song_url_pairs.append([match[0], soundcloud_search_url + quote(match[0]), not_found_text])
 
@@ -246,16 +249,21 @@ def write_post_to_file(url, post):
 
 #  }}} def write_post_to_file(url, post): #
 
+#  def convert_str_to_ascii(str_in): {{{ # 
+def convert_str_to_ascii(str_in):
+    return unicodedata.normalize('NFKD', str_in).encode('ascii','ignore')
+#  }}}  def convert_str_to_ascii(str_in): # 
+
 #  def write_post_if_appropriate(comment): {{{ # 
 def write_post_if_appropriate(comment):
     global num_finds
-    ascii_comment_body = unicodedata.normalize('NFKD', comment.body).encode('ascii','ignore')
-    song_names_matches = filter_song_names(ascii_comment_body)
+    comment_body = convert_str_to_ascii(comment.body)
+    song_names_matches = filter_song_names(comment_body)
     if len(song_names_matches) > 0:
         num_finds += 1
         url = prepend_url_str + comment.permalink
         formatted_matches = pprint.pformat(song_names_matches)
-        print_matched_comment(ascii_comment_body, url, formatted_matches)
+        print_matched_comment(comment_body, url, formatted_matches)
         # print post
         post = return_comment(get_song_url_pairs(song_names_matches))
         write_post_to_file(url, post)
@@ -263,6 +271,23 @@ def write_post_if_appropriate(comment):
 
 
 #  }}}  def write_post_if_appropriate(comment): #
+
+#  def write_post_from_submission_text(submission): {{{ # 
+def write_post_from_submission_text(submission):
+    song_names_matches = filter_song_names(convert_str_to_ascii(submission.selftext))
+    post = return_comment(get_song_url_pairs(song_names_matches))
+    write_post_to_file(submission.url, post)
+#  }}} def write_post_from_submission_text(submission): # 
+
+#  def scan_submission_comments(reddit_service, submission): {{{ # 
+def scan_submission_comments(reddit_service, submission):
+    new_comments = [comment for comment in submission.comments \
+            if comment.id not in read_comment_ids]
+    #  pprint.pprint(new_comments)
+    for comment in new_comments:
+        add_comment_id_to_read(comment.id)
+        write_post_if_appropriate(comment)
+#  }}}  def scan_submission_comments(reddit_service, submission): # 
 
 #  def scan_comments(reddit_service): {{{ # 
 def scan_comments(reddit_service, subreddits_str):
@@ -312,13 +337,22 @@ def loop_scanning():
 #  }}} def loop_scanning(): #
 
 if __name__ == '__main__':
-    loop_scanning()
+    reddit_service = return_reddit_service()
 
-    # work with single comment
-    #  write_post_if_appropriate(return_reddit_service().comment(id='dum88e8'))
+    # normal 
+    loop_scanning()
+    # comment
+    #  write_post_if_appropriate(reddit_service.comment(id='dum88e8'))
+
+    #  submissions {{{ # 
+    submission = reddit_service.submission(id='7z51na')
+    #  write_post_from_submission_text(submission)
+    #  scan_submission_comments(reddit_service, submission)
+    #  }}} submissions # 
 
     #  testing {{{ # 
     # print URL of comment
-    #  print(return_reddit_service().comment(id='dun825k').permalink)
-    #  pprint.pprint(dir(return_reddit_service().comment(id='dun825k')))
+    #  pprint.pprint((return_reddit_service().comment(id='dum88e8')))
+    #  pprint.pprint(vars(submission))
+    #  pprint.pprint(dir(submission))
     #  }}} testing # 
