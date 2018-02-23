@@ -35,8 +35,8 @@ footer = '___\n^^[Usage](https://github.com/Kevin-Mok/TrapBot#usage)&nbsp;|&nbsp
 #  comment_query_limit = 2000
 comment_query_limit = 20
 search_query_limit = 10
-#  check_freq = 60
-check_freq = 120
+check_freq = 30
+#  check_freq = 120
 num_finds = 0
 #  }}} timing/limit vars # 
 
@@ -58,6 +58,9 @@ not_found_text = ' could not be found.'
 
 
 #  }}} vars used to find best song #
+
+hevin_test_thread_id = '7ysnhg'
+last_found_comment = None
 #  }}} global vars #
 
 #  def make_lst_from_file(file_name): {{{ # 
@@ -220,31 +223,42 @@ def add_comment_id_to_read(comment_id):
 #  def print_matched_comment(comment): {{{ # 
 def print_matched_comment(comment_body, url, song_names_matches):
     global num_finds
-    #  print(found_comment_output[0])
+    global last_found_comment
+    # format output str
+    output = '**Find #{}**\n\n'.format(num_finds)
+    output += '**URL:** {}\n\n'.format(url)
+    output += '**Comment Body:**\n\n{}\n\n'.format(comment_body)
+    output += '**Matches:** {}'.format(pprint.pformat(song_names_matches))
+
+    # set last found comment and output to console
+    last_found_comment = hevin_test_thread.reply(output)
+    add_comment_id_to_read(last_found_comment.id)
     print('-' * 80)
-    print('Find #{}\n'.format(num_finds))
-    print('URL: {}'.format(url))
-    print('Comment Body:\n{}'.format(comment_body))
-    print('Matches: {}'.format(song_names_matches))
+    print('*** MATCH #{0} *** | URL: {1}'.format(num_finds, prepend_url_str + \
+            last_found_comment.permalink))
     print('-' * 80)
-    #  print(found_comment_output[1])
+
+    #  print('Find #{}\n'.format(num_finds))
+    #  print('URL: {}'.format(url))
+    #  print('Comment Body:\n{}'.format(comment_body))
+    #  print('Matches: {}'.format(song_names_matches))
 
 
 #  }}}  def print_matched_comment(comment): #
 
 #  def write_post_to_file(url, post): {{{ # 
-def write_post_to_file(url, post):
-    global num_finds
-    formatted_post = 'Find #{}\n\n'.format(num_finds)
-    formatted_post += 'URL: {}\n\n'.format(url)
-    formatted_post += 'Post:\n\n {}\n\n'.format(post)
-    formatted_post += ('=' * 80) + '\n\n'
-    #  print(formatted_post)
+#  def write_post_to_file(url, post):
+    #  global num_finds
+    #  formatted_post = 'Find #{}\n\n'.format(num_finds)
+    #  formatted_post += 'URL: {}\n\n'.format(url)
+    #  formatted_post += 'Post:\n\n {}\n\n'.format(post)
+    #  formatted_post += ('=' * 80) + '\n\n'
+    #  #  print(formatted_post)
 
-    # write post to file
-    write_posts_file = open(posts_file_name, 'a+')
-    write_posts_file.write(formatted_post)
-    write_posts_file.close()
+    #  # write post to file
+    #  write_posts_file = open(posts_file_name, 'a+')
+    #  write_posts_file.write(formatted_post)
+    #  write_posts_file.close()
 
 
 #  }}} def write_post_to_file(url, post): #
@@ -266,7 +280,8 @@ def write_post_if_appropriate(comment):
         print_matched_comment(comment_body, url, formatted_matches)
         # print post
         post = return_comment(get_song_url_pairs(song_names_matches))
-        write_post_to_file(url, post)
+        last_found_comment.reply(post)
+        #  write_post_to_file(url, post)
         #  comment.reply(post)
 
 
@@ -276,7 +291,8 @@ def write_post_if_appropriate(comment):
 def write_post_from_submission_text(submission):
     song_names_matches = filter_song_names(convert_str_to_ascii(submission.selftext))
     post = return_comment(get_song_url_pairs(song_names_matches))
-    write_post_to_file(submission.url, post)
+    hevin_test_thread.reply(post)
+    #  write_post_to_file(submission.url, post)
 #  }}} def write_post_from_submission_text(submission): # 
 
 #  def scan_submission_comments(reddit_service, submission): {{{ # 
@@ -337,7 +353,9 @@ def loop_scanning():
 #  }}} def loop_scanning(): #
 
 if __name__ == '__main__':
+    global hevin_test_thread
     reddit_service = return_reddit_service()
+    hevin_test_thread = reddit_service.submission(id=hevin_test_thread_id)
 
     # normal 
     loop_scanning()
