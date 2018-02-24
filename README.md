@@ -6,8 +6,9 @@ respective SoundCloud links.
 ## Usage
 
 Type each song on a separate line with the song name and artist (order is
-irrelevant) separated by a dash. This bot will only scan the comments posted in
-the subreddits listed in [`subreddits.txt`](https://github.com/Kevin-Mok/TrapBot/blob/master/subreddits.txt).
+irrelevant) separated by spaces and a dash. This bot will only scan the comments
+posted in the subreddits listed in
+[`subreddits.txt`](https://github.com/Kevin-Mok/TrapBot/blob/master/subreddits.txt).
 
 Example:
 ```
@@ -15,8 +16,9 @@ Example:
 * Core - RL Grime
 * U Already Know - Keys N Krates
 ```
-**Note:** The bot is still being tested, and all responses are currently being
-manually approved before submission.
+**Note:** This bot is still in beta. If you find any errors, please respond
+to the bot's comment or PM it with the post and type of error. I will be sure to
+edit the post and try to prevent those errors from reoccuring in the future.
 
 ## Motivation
 

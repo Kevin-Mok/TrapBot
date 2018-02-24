@@ -6,16 +6,14 @@ import time
 from urllib import quote
 
 import praw
-import soundcloud
 import unicodedata
 
+from create_post import *
 #  }}} imports #
 
 #  global vars {{{ # 
 #  file names {{{ # 
-soundcloud_api_file_name = 'soundcloud-api.ini'
 found_comments_file_name = 'found_comments.txt'
-posts_file_name = 'posts.txt'
 subreddits_file_name = 'subreddits.txt'
 
 read_comments_file = open(found_comments_file_name, 'r')
@@ -34,33 +32,15 @@ footer = '___\n^^[Usage](https://github.com/Kevin-Mok/TrapBot#usage)&nbsp;|&nbsp
 #  timing/limit vars {{{ # 
 #  comment_query_limit = 2000
 comment_query_limit = 20
-search_query_limit = 10
-check_freq = 30
-#  check_freq = 120
+#  check_freq = 30
+check_freq = 120
 num_finds = 0
 #  }}} timing/limit vars # 
 
-#  vars used to find best song {{{ # 
-quality_threshold = 0.5
-real_artist_threshold = 0.50
-real_artist_weight = 1
-remix_same_weight = 1
-remix_synonyms = ['remix', 'flip', 'edit', 'cover', 'remixes', 'acoustic']
-# Higher search results are usually better so later ones should be substantially
-# more matched.
-better_by_than = 0.5
-
 prepend_url_str = 'https://www.reddit.com'
 
-# Link to search of song when it can't be found.
-soundcloud_search_url = 'https://soundcloud.com/search?q='
-not_found_text = ' could not be found.'
-
-
-#  }}} vars used to find best song #
-
 hevin_test_thread_id = '7ysnhg'
-last_found_comment = None
+default_comment_id = 'dupa1ue'
 #  }}} global vars #
 
 #  def make_lst_from_file(file_name): {{{ # 
@@ -79,117 +59,13 @@ def return_reddit_service():
 
 #  }}} return_reddit_service() #
 
-#  def return_soundcloud_service(): {{{ # 
-def return_soundcloud_service():
-    soundcloud_api_file = open(soundcloud_api_file_name)
-    soundcloud_client_id = soundcloud_api_file.readline().strip('\n')
-    soundcloud_api_file.close()
-    return soundcloud.Client(client_id=soundcloud_client_id)
-
-
-#  }}} def return_soundcloud_service(): #
-
-#  split_string_into_words() {{{ # 
-# Split given string by spaces and punctuation.
-def split_string_into_words(str_in):
-    stripped_punctuation = '[]()\''
-    return [word.strip(stripped_punctuation) for word in str_in.lower().split(' ') if len(word) > 1]
-
-
-#  }}} split_string_into_words() #
-
-#  compare_search_with_title(search_words, title_words): {{{ # 
-# Return percentage of words found vs all words in title.
-def compare_search_with_title(search_words, title_words):
-    if len(search_words) < 1:
-        return 0
-    search_words_found = []
-    for search_word in search_words:
-        if search_word in title_words:
-            search_words_found.append(search_word)
-    words_found = len(search_words_found)
-    return float(words_found) / len(search_words)
-
-
-#  }}} compare_search_with_title() #
-
-#  def check_if_real_artist(artist_words, search_words): {{{ # 
-def check_if_real_artist(artist_words, search_words):
-    real_artist = compare_search_with_title(artist_words, search_words) > real_artist_threshold
-    return real_artist_weight if real_artist else 0
-
-
-#  }}}  def check_if_real_artist(artist_words, search_words): #
-
-#  def check_if_remix_same(title_words, search_words): {{{ # 
-def check_if_remix_synonym_in_lst(lst):
-    return True if len(set(lst) & set(remix_synonyms)) else False
-
-
-def check_if_remix_same(title_words, search_words):
-    remix_same = check_if_remix_synonym_in_lst(title_words) == \
-                 check_if_remix_synonym_in_lst(search_words)
-    return remix_same_weight if remix_same else 0
-
-
-#  }}}  def check_if_remix_same(title_words, search_words): #
-
-#  def get_best_song_url_from_sc(soundcloud_service, query): {{{ # 
-def get_best_song_url_from_sc(soundcloud_service, query):
-    found_tracks = soundcloud_service.get('/tracks', q=query, limit=search_query_limit)
-
-    most_similar_percent = 0
-    best_url = ''
-    if len(found_tracks) < 1:
-        return None
-    for track in found_tracks:
-        search_words = split_string_into_words(query)
-        title_words = split_string_into_words(track.title)
-        artist_words = split_string_into_words(track.user['username'])
-
-        word_similarity_weight = compare_search_with_title(search_words, title_words)
-        artist_weight = check_if_real_artist(artist_words, search_words)
-        remix_weight = check_if_remix_same(title_words, search_words)
-
-        similar_percent = word_similarity_weight + artist_weight + remix_weight
-        # DEBUG
-        #  print([word_similarity_weight, artist_weight, remix_weight], similar_percent, track.title, track.user['username'])
-        if similar_percent > (most_similar_percent + better_by_than):
-            most_similar_percent = similar_percent
-            best_url = track.permalink_url
-
-    return best_url if most_similar_percent > quality_threshold else None
-
-
-#  }}}  def get_best_song_url_from_sc(soundcloud_service, query): #
-
-#  def get_song_url_pairs(song_names_matches): {{{ #
-def get_song_url_pairs(song_names_matches):
-    song_url_pairs = []
-    soundcloud_service = return_soundcloud_service()
-
-    for match in song_names_matches:
-        # combine song name and artist to form search query
-        search_query = '{0} {1}'.format(match[1], match[2])
-        best_song_url = get_best_song_url_from_sc(soundcloud_service, search_query)
-        if best_song_url is not None:
-            song_url_pairs.append([match[0], best_song_url])
-        # comment out to not show not found
-        else:
-            song_url_pairs.append([match[0], soundcloud_search_url + quote(match[0]), not_found_text])
-
-    return song_url_pairs
-
-
-#  }}} get_song_url_pairs() #
-
 #  def filter_song_names(comment): {{{ # 
 # Get song names matches from comment and filter out songs in which the words or
 # actual song name are too long (likely not a song).
 def filter_song_names(comment):
     # section should be between 3 and 50 chars
     section_regex = '(.{3,50})'
-    song_name_regex = '(^{0}\s?-\s?{0}$)'.format(section_regex)
+    song_name_regex = '(^{0}\s-\s{0}$)'.format(section_regex)
     compiled_song_name_regex = re.compile(song_name_regex, re.MULTILINE)
     max_word_length = 30
     proper_song_name = True
@@ -233,35 +109,14 @@ def print_matched_comment(comment_body, url, song_names_matches):
     # set last found comment and output to console
     last_found_comment = hevin_test_thread.reply(output)
     add_comment_id_to_read(last_found_comment.id)
-    print('-' * 80)
-    print('*** MATCH #{0} *** | URL: {1}'.format(num_finds, prepend_url_str + \
-            last_found_comment.permalink))
-    print('-' * 80)
-
-    #  print('Find #{}\n'.format(num_finds))
-    #  print('URL: {}'.format(url))
-    #  print('Comment Body:\n{}'.format(comment_body))
-    #  print('Matches: {}'.format(song_names_matches))
+    console_msg = '*** MATCH #{0} *** | URL: {1}'.format(num_finds, prepend_url_str + last_found_comment.permalink)
+    divider = '-' * len(console_msg)
+    print(divider)
+    print(console_msg)
+    print(divider)
 
 
 #  }}}  def print_matched_comment(comment): #
-
-#  def write_post_to_file(url, post): {{{ # 
-#  def write_post_to_file(url, post):
-    #  global num_finds
-    #  formatted_post = 'Find #{}\n\n'.format(num_finds)
-    #  formatted_post += 'URL: {}\n\n'.format(url)
-    #  formatted_post += 'Post:\n\n {}\n\n'.format(post)
-    #  formatted_post += ('=' * 80) + '\n\n'
-    #  #  print(formatted_post)
-
-    #  # write post to file
-    #  write_posts_file = open(posts_file_name, 'a+')
-    #  write_posts_file.write(formatted_post)
-    #  write_posts_file.close()
-
-
-#  }}} def write_post_to_file(url, post): #
 
 #  def convert_str_to_ascii(str_in): {{{ # 
 def convert_str_to_ascii(str_in):
@@ -337,7 +192,7 @@ def return_comment(song_url_pairs):
 def loop_scanning():
     reddit_service = return_reddit_service()
     subreddits_str = '+'.join(make_lst_from_file(subreddits_file_name))
-    #  print(subreddits_str)
+
     num_scans = 0
     while True:
         total_uptime = float(num_scans * check_freq) / 60
@@ -348,29 +203,26 @@ def loop_scanning():
         scan_comments(reddit_service, subreddits_str)
         num_scans += 1
         time.sleep(check_freq)
-
+    #  scan_comments(reddit_service, subreddits_str)
 
 #  }}} def loop_scanning(): #
 
 if __name__ == '__main__':
     global hevin_test_thread
+    global last_found_comment
     reddit_service = return_reddit_service()
     hevin_test_thread = reddit_service.submission(id=hevin_test_thread_id)
+    last_found_comment = reddit_service.comment(id=default_comment_id)
 
     # normal 
     loop_scanning()
     # comment
-    #  write_post_if_appropriate(reddit_service.comment(id='dum88e8'))
+    # New EDM this week source
+    #  write_post_if_appropriate(reddit_service.comment(id='dupa1ue'))
+    #  write_post_if_appropriate(reddit_service.comment(id='dupfald'))
 
     #  submissions {{{ # 
-    submission = reddit_service.submission(id='7z51na')
-    #  write_post_from_submission_text(submission)
+    #  submission = reddit_service.submission(id='7z51na')
+    #  #  write_post_from_submission_text(submission)
     #  scan_submission_comments(reddit_service, submission)
     #  }}} submissions # 
-
-    #  testing {{{ # 
-    # print URL of comment
-    #  pprint.pprint((return_reddit_service().comment(id='dum88e8')))
-    #  pprint.pprint(vars(submission))
-    #  pprint.pprint(dir(submission))
-    #  }}} testing # 
