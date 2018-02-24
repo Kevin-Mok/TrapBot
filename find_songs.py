@@ -2,12 +2,13 @@ from urllib import quote
 
 import soundcloud
 
+from constants import not_found_text
+
 soundcloud_api_file_name = 'soundcloud-api.ini'
 search_query_limit = 10
 
 # Link to search of song when it can't be found.
 soundcloud_search_url = 'https://soundcloud.com/search?q='
-not_found_text = ' could not be found.'
 
 #  weights used to find right song {{{ # 
 quality_threshold = 0.5
@@ -75,12 +76,12 @@ def check_if_remix_same(title_words, search_words):
 
 #  }}}  def check_if_remix_same(title_words, search_words): #
 
-#  def get_best_song_url_from_sc(soundcloud_service, query): {{{ # 
-def get_best_song_url_from_sc(soundcloud_service, query):
+#  def get_best_track(soundcloud_service, query): {{{ #
+def get_best_track(soundcloud_service, query):
     found_tracks = soundcloud_service.get('/tracks', q=query, limit=search_query_limit)
 
     most_similar_percent = 0
-    best_url = ''
+    best_track = None
     if len(found_tracks) < 1:
         return None
     for track in found_tracks:
@@ -97,12 +98,12 @@ def get_best_song_url_from_sc(soundcloud_service, query):
         #  print([word_similarity_weight, artist_weight, remix_weight], similar_percent, track.title, track.user['username'])
         if similar_percent > (most_similar_percent + better_by_than):
             most_similar_percent = similar_percent
-            best_url = track.permalink_url
+            best_track = track
 
-    return best_url if most_similar_percent > quality_threshold else None
+    return best_track if most_similar_percent > quality_threshold else None
 
 
-#  }}}  def get_best_song_url_from_sc(soundcloud_service, query): #
+#  }}}  def get_best_track(soundcloud_service, query): #
 
 #  def get_song_url_pairs(song_names_matches): {{{ #
 def get_song_url_pairs(song_names_matches):
@@ -112,9 +113,9 @@ def get_song_url_pairs(song_names_matches):
     for match in song_names_matches:
         # combine song name and artist to form search query
         search_query = '{0} {1}'.format(match[1], match[2])
-        best_song_url = get_best_song_url_from_sc(soundcloud_service, search_query)
-        if best_song_url is not None:
-            song_url_pairs.append([match[0], best_song_url])
+        best_track = get_best_track(soundcloud_service, search_query)
+        if best_track is not None:
+            song_url_pairs.append([match[0], best_track])
         # comment out to not show not found
         else:
             song_url_pairs.append([match[0], soundcloud_search_url + quote(match[0]), not_found_text])

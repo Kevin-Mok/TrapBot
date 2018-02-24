@@ -2,9 +2,16 @@
 import time
 
 import write_post
-from constants import reddit_service, found_comments_file_name
+from constants import reddit_service, found_comments_file_name, \
+        hevin_test_thread_id, header
+
+# for debugging purposes
+from pprint import pprint
 
 subreddits_file_name = 'subreddits.txt'
+#  inbox_reply_limit = 20
+inbox_reply_limit = 5
+confirmation_str = 'Y'
 
 #  freq/limits {{{ # 
 #  comment_query_limit = 200
@@ -52,6 +59,26 @@ def scan_comments(reddit_service, subreddits_str):
 
 #  }}} def scan_comments(reddit_service): #
 
+def respond_to_orig_post(parent_comment_id):
+    for comment in reddit_service.submission(id=hevin_test_thread_id).comments.list():
+        if comment.id == parent_comment_id:
+                if header in child_comment:
+                    child_comment_lines = child_comment.body.split('\n')
+                    
+
+
+def check_for_replies():
+    fetched_replies = reddit_service.inbox.comment_replies(limit=inbox_reply_limit).__iter__()
+    new_replies = [reply for reply in fetched_replies \
+                    if reply.id not in make_set_from_file(found_comments_file_name)]
+    for reply in new_replies:
+        #  print(reply.submission.id, reply.body)
+        if reply.submission.id == hevin_test_thread_id and \
+                reply.body == confirmation_str:
+                    respond_to_orig_post(reply.parent().id)
+
+
+
 #  def loop_scanning(): {{{ # 
 def loop_scanning():
     subreddits_str = '+'.join(make_set_from_file(subreddits_file_name))
@@ -69,3 +96,21 @@ def loop_scanning():
     #  scan_comments(reddit_service, subreddits_str)
 
 #  }}} def loop_scanning(): #
+
+if __name__ == '__main__':
+    # normal 
+    #  loop_scanning()
+
+    #  check_for_replies()
+
+    # comment
+    write_post.write_post_if_appropriate(reddit_service.comment(id='dur3z7x'))
+
+    #  submissions {{{ # 
+    #  submission = reddit_service.submission(id='7z51na')
+    #  #  write_post.write_post_from_submission_text(submission)
+    #  scan_submission_comments(reddit_service, submission)
+    #  }}} submissions #
+
+    # New EDM this week source
+    #  write_post.write_post_if_appropriate(reddit_service.comment(id='dupa1ue'))

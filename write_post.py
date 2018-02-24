@@ -1,19 +1,17 @@
 import re
 import unicodedata
-from pprint import pformat
+from pprint import pformat, pprint
 
 import find_songs
-from constants import reddit_service, song_name_regex, max_word_length, found_comments_file_name
+from constants import reddit_service, song_name_regex, max_word_length, \
+found_comments_file_name, not_found_text, hevin_test_thread_id, header, footer
 
 num_finds = 0
-# where to post info about found matches
-hevin_test_thread = reddit_service.submission(id='7ysnhg')
+# thread of where to post info about found matches
+hevin_test_thread = reddit_service.submission(id=hevin_test_thread_id)
+queued_posts_file_name = 'queued_posts.txt'
 prepend_url_str = 'https://www.reddit.com'
-
-#  header/footer of response {{{ # 
-header = '**SoundCloud Links:**\n\n'
-footer = '___\n^^[Usage](https://github.com/Kevin-Mok/TrapBot#usage)&nbsp;|&nbsp;Bot&nbsp;created&nbsp;by&nbsp;u/ConfusedFence'
-#  }}} header/footer of response # 
+surround_comment_id = '!@#'
 
 #  def convert_str_to_ascii(str_in): {{{ #
 def convert_str_to_ascii(str_in):
@@ -55,37 +53,61 @@ def add_comment_id_to_read(comment_id):
 
 #  }}}  def add_comment_id_to_read(id): #
 
-#  def print_matched_comment(comment): {{{ # 
-def print_matched_comment(comment_body, url, song_names_matches):
-    global num_finds
+# Also prints out to console about match.
+def set_last_found_comment(found_comment):
     global last_found_comment
-    # format output str
-    output = '**Find #{}**\n\n'.format(num_finds)
-    output += '**URL:** {}\n\n'.format(url)
-    output += '**Comment Body:**\n\n{}\n\n'.format(comment_body)
-    output += '**Matches:** {}'.format(pformat(song_names_matches))
-
-    # set last found comment and output to console
-    last_found_comment = hevin_test_thread.reply(output)
-    add_comment_id_to_read(last_found_comment.id)
-    console_msg = '*** MATCH #{0} *** | URL: {1}'.format(num_finds, prepend_url_str + last_found_comment.permalink)
+    last_found_comment = found_comment
+    add_comment_id_to_read(found_comment.id)
+    console_msg = '*** MATCH #{0} *** | URL: {1}'.format(num_finds,\
+            prepend_url_str + found_comment.permalink)
     divider = '-' * len(console_msg)
     print(divider)
     print(console_msg)
     print(divider)
+
+def add_matches_to_output(output, song_url_pairs):
+    output += '**Matches:**\n\n'
+    for pair in song_url_pairs:
+        if type(pair[1]) == 'str':
+            match_output = not_found_text
+        else:
+            match_output = [pair[1].user['username'], pair[1].title]
+        output += "{0}: {1}\n\n".format(pair[0], match_output)
+    return output
+
+#  def print_matched_comment(comment): {{{ # 
+def print_matched_comment(comment_body, url, song_url_pairs, comment_id):
+    global num_finds
+    #  global last_found_comment
+    # format output str
+    output = '**Find #{}**\n\n'.format(num_finds)
+    output += '**URL:** {}\n\n'.format(url)
+    output += '**Comment Body:**\n\n{}\n\n'.format(comment_body)
+    output = add_matches_to_output(output, song_url_pairs)
+    output += '___\n' + return_comment(comment_id, song_url_pairs)
+    print(output)
+    #  post_extractor_regex = '{0}(\w{{3,10}}){0}(.+)'.format(surround_comment_id)
+    # todo: fix this post/regex problem
+    post_extractor_regex = '!@#(.+)!@#'.format(surround_comment_id)
+    print(post_extractor_regex)
+    compiled_post_extractor_regex = re.compile(post_extractor_regex, re.M)
+    print(re.match(post_extractor_regex, output))
+
+    #  set_last_found_comment(hevin_test_thread.reply(output))
 
 
 #  }}}  def print_matched_comment(comment): #
 
 #  def return_comment(song_url_pairs): {{{ #
 # Expects lst of lsts containing song then URL in that specific order.
-def return_comment(song_url_pairs):
-    comment = header
+def return_comment(comment_id, song_url_pairs):
+    comment = "{0}{1}{0}".format(surround_comment_id, comment_id)
+    comment += header
     for item in song_url_pairs:
         if len(item) == 3:
             comment += '* ~~[{0}]({1})~~{2}'.format(item[0], item[1], item[2])
         else:
-            comment += '* [{0}]({1})'.format(item[0], item[1])
+            comment += '* [{0}]({1})'.format(item[0], item[1].permalink_url)
         comment += '\n\n'
     return comment + footer
 
@@ -95,18 +117,19 @@ def return_comment(song_url_pairs):
 #  def write_post_if_appropriate(comment): {{{ # 
 def write_post_if_appropriate(comment):
     global num_finds
+    global last_found_comment
+
     comment_body = convert_str_to_ascii(comment.body)
     song_names_matches = filter_song_names(comment_body)
     if len(song_names_matches) > 0:
         num_finds += 1
         url = prepend_url_str + comment.permalink
-        formatted_matches = pformat(song_names_matches)
-        print_matched_comment(comment_body, url, formatted_matches)
-        # print post
-        post = return_comment(find_songs.get_song_url_pairs(song_names_matches))
-        last_found_comment.reply(post)
-        #  write_post_to_file(url, post)
-        #  comment.reply(post)
+        #  formatted_matches = pformat(song_names_matches)
+        song_url_pairs = find_songs.get_song_url_pairs(song_names_matches)
+        print_matched_comment(comment_body, url, song_url_pairs, comment.id)
+
+        #  post = return_comment(comment.id, song_url_pairs)
+        #  last_found_comment.reply(post)
 
 
 #  }}}  def write_post_if_appropriate(comment): #
