@@ -1,9 +1,15 @@
+from urllib import quote
+
 import soundcloud
 
 soundcloud_api_file_name = 'soundcloud-api.ini'
 search_query_limit = 10
 
-#  vars used to find best song {{{ # 
+# Link to search of song when it can't be found.
+soundcloud_search_url = 'https://soundcloud.com/search?q='
+not_found_text = ' could not be found.'
+
+#  weights used to find right song {{{ # 
 quality_threshold = 0.5
 real_artist_threshold = 0.50
 real_artist_weight = 1
@@ -12,13 +18,7 @@ remix_synonyms = ['remix', 'flip', 'edit', 'cover', 'remixes', 'acoustic', 'mix'
 # Higher search results are usually better so later ones should be substantially
 # more matched.
 better_by_than = 0.5
-
-# Link to search of song when it can't be found.
-soundcloud_search_url = 'https://soundcloud.com/search?q='
-not_found_text = ' could not be found.'
-
-
-#  }}} vars used to find best song #
+#  }}} weights used to find right song # 
 
 #  def return_soundcloud_service(): {{{ # 
 def return_soundcloud_service():
@@ -120,6 +120,5 @@ def get_song_url_pairs(song_names_matches):
             song_url_pairs.append([match[0], soundcloud_search_url + quote(match[0]), not_found_text])
 
     return song_url_pairs
-
 
 #  }}} get_song_url_pairs() #
