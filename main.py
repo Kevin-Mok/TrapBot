@@ -1,4 +1,5 @@
 import scan_reddit
+import write_post
 from constants import default_comment_id, reddit_service
 
 if __name__ == '__main__':
@@ -11,9 +12,7 @@ if __name__ == '__main__':
     # normal 
     scan_reddit.loop_scanning()
     # comment
-    # New EDM this week source
-    #  write_post_if_appropriate(reddit_service.comment(id='dupa1ue'), last_found_comment)
-    #  write_post_if_appropriate(reddit_service.comment(id='dupfald'), last_found_comment)
+    #  write_post.write_post_if_appropriate(reddit_service.comment(id='dusxpje'))
 
     #  submissions {{{ # 
     #  submission = reddit_service.submission(id='7z51na')
