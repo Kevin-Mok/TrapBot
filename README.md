@@ -1,3 +1,5 @@
+**Note**: *This project is deprecated due to the SoundCloud API functioning improperly.*
+
 # [TrapBot](https://www.reddit.com/user/TrapSCBot)
 
 A reddit bot that looks for comments with song names and responds with their
