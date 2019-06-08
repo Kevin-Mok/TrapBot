@@ -1,3 +1,16 @@
+.idea/
+
+*.html
+*.out
+*.sw*
+*.txt
+*.yml
+
+search_*
+
+commit-msg.txt
+find_comments.py
+
 #  .gitignore template {{{ # 
 # PRAW config file
 *.ini
@@ -104,13 +117,3 @@ ENV/
 # mkdocs documentation
 /site
 #  }}}  .gitignore template # 
-
-.idea/
-*.sw*
-*.out
-*.yml
-*.txt
-*.html
-search_*
-commit-msg.txt
-find_comments.py

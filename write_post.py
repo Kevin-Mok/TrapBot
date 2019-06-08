@@ -7,7 +7,7 @@ from constants import reddit_service, song_name_regex, max_word_length, found_co
 
 num_finds = 0
 # where to post info about found matches
-hevin_test_thread = reddit_service.submission(id='7ysnhg')
+hevin_test_thread = reddit_service.submission(id='by245p')
 prepend_url_str = 'https://www.reddit.com'
 
 #  header/footer of response {{{ # 
@@ -15,21 +15,21 @@ header = '**SoundCloud Links:**\n\n'
 footer = '___\n^^[Usage](https://github.com/Kevin-Mok/TrapBot#usage)&nbsp;|&nbsp;Bot&nbsp;created&nbsp;by&nbsp;u/ConfusedFence'
 #  }}} header/footer of response # 
 
-#  def convert_str_to_ascii(str_in): {{{ #
 def convert_str_to_ascii(str_in):
     return unicodedata.normalize('NFKD', str_in).encode('ascii', 'ignore')
 
-
-#  }}}  def convert_str_to_ascii(str_in): #
-
-#  def filter_song_names(comment): {{{ # 
 # Get song names matches from comment and filter out songs in which the words or
 # actual song name are too long (likely not a song).
 def filter_song_names(comment):
     compiled_song_name_regex = re.compile(song_name_regex, re.MULTILINE)
     proper_song_name = True
 
-    song_names_matches = compiled_song_name_regex.findall(comment)
+    try:
+        song_names_matches = compiled_song_name_regex.findall(comment)
+    # need to decode HTML bytes
+    except TypeError as e:
+        song_names_matches = \
+                compiled_song_name_regex.findall(comment.decode("utf-8"))
     filtered_song_names_matches = []
     for match in song_names_matches:
         # max word length
@@ -42,20 +42,12 @@ def filter_song_names(comment):
 
     return filtered_song_names_matches
 
-
-#  }}}  def filter_song_names(comment): #
-
-#  def add_comment_id_to_read(id): {{{ # 
 def add_comment_id_to_read(comment_id):
     #  read_comment_ids.add(comment_id)
     write_comments_file = open(found_comments_file_name, 'a+')
     write_comments_file.write(comment_id + '\n')
     write_comments_file.close()
 
-
-#  }}}  def add_comment_id_to_read(id): #
-
-#  def print_matched_comment(comment): {{{ # 
 def print_matched_comment(comment_body, url, song_names_matches):
     global num_finds
     global last_found_comment
@@ -74,10 +66,6 @@ def print_matched_comment(comment_body, url, song_names_matches):
     print(console_msg)
     print(divider)
 
-
-#  }}}  def print_matched_comment(comment): #
-
-#  def return_comment(song_url_pairs): {{{ #
 # Expects lst of lsts containing song then URL in that specific order.
 def return_comment(song_url_pairs):
     comment = header
@@ -89,13 +77,10 @@ def return_comment(song_url_pairs):
         comment += '\n\n'
     return comment + footer
 
-
-#  }}}  def return_comment(song_url_pairs): #
-
-#  def write_post_if_appropriate(comment): {{{ # 
 def write_post_if_appropriate(comment):
     global num_finds
     comment_body = convert_str_to_ascii(comment.body)
+    #  print(comment.subreddit, comment_body)
     song_names_matches = filter_song_names(comment_body)
     if len(song_names_matches) > 0:
         num_finds += 1
@@ -108,13 +93,8 @@ def write_post_if_appropriate(comment):
         #  write_post_to_file(url, post)
         #  comment.reply(post)
 
-
-#  }}}  def write_post_if_appropriate(comment): #
-
-#  def write_post_from_submission_text(submission): {{{ # 
 def write_post_from_submission_text(submission):
     song_names_matches = filter_song_names(convert_str_to_ascii(submission.selftext))
     post = return_comment(find_songs.get_song_url_pairs(song_names_matches))
     hevin_test_thread.reply(post)
     #  write_post_to_file(submission.url, post)
-#  }}} def write_post_from_submission_text(submission): #

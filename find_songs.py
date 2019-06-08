@@ -1,4 +1,4 @@
-from urllib import quote
+from urllib.parse import quote
 
 import soundcloud
 
@@ -9,7 +9,7 @@ search_query_limit = 10
 soundcloud_search_url = 'https://soundcloud.com/search?q='
 not_found_text = ' could not be found.'
 
-#  weights used to find right song {{{ # 
+#  weights used to find right song
 quality_threshold = 0.5
 real_artist_threshold = 0.50
 real_artist_weight = 1
@@ -18,28 +18,18 @@ remix_synonyms = ['remix', 'flip', 'edit', 'cover', 'remixes', 'acoustic', 'mix'
 # Higher search results are usually better so later ones should be substantially
 # more matched.
 better_by_than = 0.5
-#  }}} weights used to find right song # 
 
-#  def return_soundcloud_service(): {{{ # 
 def return_soundcloud_service():
     soundcloud_api_file = open(soundcloud_api_file_name)
     soundcloud_client_id = soundcloud_api_file.readline().strip('\n')
     soundcloud_api_file.close()
     return soundcloud.Client(client_id=soundcloud_client_id)
 
-
-#  }}} def return_soundcloud_service(): #
-
-#  split_string_into_words() {{{ # 
 # Split given string by spaces and punctuation.
 def split_string_into_words(str_in):
     stripped_punctuation = '[]()\''
     return [word.strip(stripped_punctuation) for word in str_in.lower().split(' ') if len(word) > 1]
 
-
-#  }}} split_string_into_words() #
-
-#  compare_search_with_title(search_words, title_words): {{{ # 
 # Return percentage of words found vs all words in title.
 def compare_search_with_title(search_words, title_words):
     if len(search_words) < 1:
@@ -51,31 +41,18 @@ def compare_search_with_title(search_words, title_words):
     words_found = len(search_words_found)
     return float(words_found) / len(search_words)
 
-
-#  }}} compare_search_with_title() #
-
-#  def check_if_real_artist(artist_words, search_words): {{{ # 
 def check_if_real_artist(artist_words, search_words):
     real_artist = compare_search_with_title(artist_words, search_words) > real_artist_threshold
     return real_artist_weight if real_artist else 0
 
-
-#  }}}  def check_if_real_artist(artist_words, search_words): #
-
-#  def check_if_remix_same(title_words, search_words): {{{ # 
 def check_if_remix_synonym_in_lst(lst):
     return True if len(set(lst) & set(remix_synonyms)) else False
-
 
 def check_if_remix_same(title_words, search_words):
     remix_same = check_if_remix_synonym_in_lst(title_words) == \
                  check_if_remix_synonym_in_lst(search_words)
     return remix_same_weight if remix_same else 0
 
-
-#  }}}  def check_if_remix_same(title_words, search_words): #
-
-#  def get_best_song_url_from_sc(soundcloud_service, query): {{{ # 
 def get_best_song_url_from_sc(soundcloud_service, query):
     found_tracks = soundcloud_service.get('/tracks', q=query, limit=search_query_limit)
 
@@ -101,10 +78,6 @@ def get_best_song_url_from_sc(soundcloud_service, query):
 
     return best_url if most_similar_percent > quality_threshold else None
 
-
-#  }}}  def get_best_song_url_from_sc(soundcloud_service, query): #
-
-#  def get_song_url_pairs(song_names_matches): {{{ #
 def get_song_url_pairs(song_names_matches):
     song_url_pairs = []
     soundcloud_service = return_soundcloud_service()
@@ -121,4 +94,3 @@ def get_song_url_pairs(song_names_matches):
 
     return song_url_pairs
 
-#  }}} get_song_url_pairs() #
