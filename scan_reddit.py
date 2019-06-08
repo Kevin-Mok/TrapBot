@@ -7,8 +7,8 @@ from constants import reddit_service, found_comments_file_name
 subreddits_file_name = 'subreddits.txt'
 
 #  comment_query_limit = 2000
-#  comment_query_limit = 20
-comment_query_limit = 100
+comment_query_limit = 20
+#  comment_query_limit = 100
 #  check_freq = 30
 check_freq = 120
 
