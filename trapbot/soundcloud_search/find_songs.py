@@ -1,6 +1,8 @@
 from urllib.parse import quote
 
 import soundcloud
+from importlib.resources import open_text
+#  from . import soundcloud_search
 
 soundcloud_api_file_name = 'soundcloud-api.ini'
 search_query_limit = 10
@@ -20,7 +22,8 @@ remix_synonyms = ['remix', 'flip', 'edit', 'cover', 'remixes', 'acoustic', 'mix'
 better_by_than = 0.5
 
 def return_soundcloud_service():
-    soundcloud_api_file = open(soundcloud_api_file_name)
+    #  soundcloud_api_file = open(soundcloud_api_file_name)
+    soundcloud_api_file = open_text('trapbot.soundcloud_search', soundcloud_api_file_name)
     soundcloud_client_id = soundcloud_api_file.readline().strip('\n')
     soundcloud_api_file.close()
     return soundcloud.Client(client_id=soundcloud_client_id)
@@ -71,10 +74,12 @@ def get_best_song_url_from_sc(soundcloud_service, query):
 
         similar_percent = word_similarity_weight + artist_weight + remix_weight
         # DEBUG
-        #  print([word_similarity_weight, artist_weight, remix_weight], similar_percent, track.title, track.user['username'])
+        print([word_similarity_weight, artist_weight, remix_weight],
+                similar_percent, track.title, track.user['username'])
         if similar_percent > (most_similar_percent + better_by_than):
             most_similar_percent = similar_percent
             best_url = track.permalink_url
+    print()
 
     return best_url if most_similar_percent > quality_threshold else None
 

@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 import time
 
-import write_post
-from constants import reddit_service, found_comments_file_name
+#  from . import write_post
+from trapbot.data.constants import reddit_service, found_comments_file_name
 
 subreddits_file_name = 'subreddits.txt'
 
 #  comment_query_limit = 2000
-comment_query_limit = 20
-#  comment_query_limit = 100
+comment_query_limit = 200
+#  comment_query_limit = 20
 #  check_freq = 30
 check_freq = 120
 
@@ -34,6 +34,7 @@ def filter_new_comment(comment):
     :returns: bool
 
     """
+    #  TODO: store found comments in memory # 
     return (comment.id not in make_set_from_file(found_comments_file_name)) and \
             (comment.author.name != "AutoModerator")
 
