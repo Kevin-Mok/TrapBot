@@ -18,15 +18,22 @@ footer = '___\n^^[Usage](https://github.com/Kevin-Mok/TrapBot#usage)&nbsp;|&nbsp
 def convert_str_to_ascii(str_in):
     return unicodedata.normalize('NFKD', str_in).encode('ascii', 'ignore')
 
-# Get song names matches from comment and filter out songs in which the words or
-# actual song name are too long (likely not a song).
 def filter_song_names(comment):
+    """Get song names matches from comment and filter out songs in which
+    the words or actual song name are too long (likely not a song).
+
+    :comment: body of comment
+    :returns: list of matches. Each match contains the full song name,
+    and the 2 sections of the song name (i.e. song name and artist). The
+    order of the sections is unknown.
+    """
     compiled_song_name_regex = re.compile(song_name_regex, re.MULTILINE)
     proper_song_name = True
 
     try:
         song_names_matches = compiled_song_name_regex.findall(comment)
     # need to decode HTML bytes
+    #  TODO: fix translating bytes to words, right now returns list # 
     except TypeError as e:
         song_names_matches = \
                 compiled_song_name_regex.findall(comment.decode("utf-8"))
