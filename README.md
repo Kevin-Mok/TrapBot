@@ -1,80 +1,133 @@
-**Note**: *This project has been put on hiatus due to the SoundCloud API
-returning incorrect search results.*
+# TrapBot
 
-# [TrapBot](https://www.reddit.com/user/TrapSCBot)
+A Reddit bot that automatically finds and links SoundCloud tracks mentioned in music discussion threads.
 
-A reddit bot that looks for comments with song names and responds with their
-respective SoundCloud links.
+![Python](https://img.shields.io/badge/Python-3-blue)
+![Reddit](https://img.shields.io/badge/Reddit-PRAW-orange)
+![SoundCloud](https://img.shields.io/badge/SoundCloud-API-red)
 
-## Usage <!---  {{{ -->
+> **Note**: This project is on hiatus due to SoundCloud API returning incorrect search results.
 
-Type each song on a separate line with the song name and artist (order is
-irrelevant) separated by spaces and a dash. This bot will only scan the comments
-posted in the subreddits listed in
-[`subreddits.txt`](https://github.com/Kevin-Mok/TrapBot/blob/master/subreddits.txt).
+## Overview
 
-Example:
+[TrapBot](https://www.reddit.com/user/TrapSCBot) monitors music subreddits for comments listing songs and automatically replies with SoundCloud links. Inspired by r/trap discussion threads where users post song lists without accompanying links.
+
+## Features
+
+- **Automatic Song Detection** - Parses comments for "Artist - Song" format
+- **SoundCloud Search** - Finds matching tracks via API
+- **Multi-Subreddit Support** - Configurable subreddit monitoring
+- **Formatted Replies** - Clean Reddit comment formatting with links
+
+## Tech Stack
+
+| Component | Technology |
+|-----------|------------|
+| **Language** | Python 3 |
+| **Reddit API** | PRAW (Python Reddit API Wrapper) |
+| **Music API** | SoundCloud Python SDK |
+| **Deployment** | Virtual environment |
+
+## Project Structure
+
+```
+TrapBot/
+├── main.py               # Bot entry point
+├── subreddits.txt        # Monitored subreddits list
+├── praw.ini              # Reddit API credentials
+├── soundcloud-api.ini    # SoundCloud API key
+└── requirements.txt      # Python dependencies
+```
+
+## Usage
+
+Type each song on a separate line with artist and song name separated by a dash:
+
 ```
 * Helix - Flume
 * Core - RL Grime
 * U Already Know - Keys N Krates
 ```
-**Note:** This bot is still in beta. If you find any errors, please respond
-to the bot's comment or PM it with the post and type of error. I will be sure to
-edit the post and try to prevent those errors from reoccuring in the future.
 
-<!---  }}} -->
+The bot monitors subreddits listed in [`subreddits.txt`](https://github.com/Kevin-Mok/TrapBot/blob/master/subreddits.txt).
 
-## Installation <!---  {{{ -->
+## Installation
 
-**Requirements**:
+### Prerequisites
 - Python 3
 - `virtualenv`
+- Reddit app credentials
+- SoundCloud API key
 
-1. Make a new working directory for the virtual environment.
-    ```
-    python -m venv trapbot
-    ```
-1. `cd` into the new directory, and activate the virtual environment.
-    ```
-    cd trapbot
-    source bin/activate
-    ```
-1. Clone the repository.
-    ```
-    git clone https://github.com/Kevin-Mok/TrapBot src
-    ```
-1. Install the necessary packages.
-    ```
-    cd src
-    pip install -r requirements.txt
-    ```
-1. [Create a reddit app](https://www.reddit.com/prefs/apps) with a redirect
-   uri of `https://127.0.0.1/`. Then, create `praw.ini` with the following
-   information:
-    ```
-    [trapbot]
-    client_id=     # below app name
-    client_secret=
-    password=
-    username=
-    user_agent=TrapBot user agent
-    ```
-1. Create `soundcloud-api.ini` with your SoundCloud API key as the only
-   line in the file.
-1. Run `main.py`.
+### Setup
 
-<!---  }}} -->
+```bash
+# Create virtual environment
+python -m venv trapbot
+cd trapbot
+source bin/activate
 
-## Motivation <!--- {{{ -->
+# Clone and install
+git clone https://github.com/Kevin-Mok/TrapBot src
+cd src
+pip install -r requirements.txt
 
-This bot was inspired by various music discussion threads (namely
-in [r/trap](https://www.reddit.com/r/trap/)) where lists of songs would be
-posted with no accompanying SoundCloud links.
+# Configure credentials
+# 1. Create Reddit app at https://www.reddit.com/prefs/apps
+#    (redirect uri: https://127.0.0.1/)
+
+# 2. Create praw.ini:
+cat > praw.ini << EOF
+[trapbot]
+client_id=     # below app name
+client_secret=
+password=
+username=
+user_agent=TrapBot user agent
+EOF
+
+# 3. Create soundcloud-api.ini with your API key
+
+# Run the bot
+python main.py
+```
+
+## Why This Project is Interesting
+
+### Technical Highlights
+
+1. **API Integration**
+   - Reddit API via PRAW for comment monitoring
+   - SoundCloud API for track searching
+   - Multi-API orchestration
+
+2. **Text Parsing**
+   - Pattern matching for song/artist format
+   - Handling various input formats
+   - Error-tolerant parsing
+
+3. **Bot Architecture**
+   - Continuous subreddit monitoring
+   - Rate limiting compliance
+   - Formatted response generation
+
+4. **Community Automation**
+   - Solves real user pain point
+   - Enhances music discussion threads
+   - Non-intrusive, helpful automation
+
+### Skills Demonstrated
+
+- **Python Development**: API wrappers, text processing
+- **Bot Development**: Reddit automation, rate limiting
+- **API Integration**: OAuth, search APIs
+- **DevOps**: Virtual environments, configuration management
 
 ## Built With
-- Python API Wrappers:
-  - [SoundCloud](https://github.com/soundcloud/soundcloud-python)
-  - [reddit](https://github.com/praw-dev/praw)
 
-<!---  }}} -->
+- [PRAW](https://github.com/praw-dev/praw) - Python Reddit API Wrapper
+- [SoundCloud Python](https://github.com/soundcloud/soundcloud-python) - SoundCloud API SDK
+
+## Author
+
+[Kevin Mok](https://github.com/Kevin-Mok)
